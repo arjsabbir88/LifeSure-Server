@@ -28,6 +28,8 @@ async function run() {
 
     // policiesCollection
     const policiesCollection = database.collection('policies');
+    // created bookingPolicyCollection
+    const bookingPolicyCollection = database.collection('bookingPolicyCollection');
 
 
     //insert new policy
@@ -51,13 +53,12 @@ async function run() {
         res.send(policy);
     })
 
-
-
-
-
-
-
-
+    // created api for the booking policy collection
+    app.post('/booking-policy',async(req,res)=>{
+      const bookingPolicy = req.body;
+      const bookedPolicy = await bookingPolicyCollection.insertOne(bookingPolicy);
+      res.send(bookedPolicy);
+    })
 
 
     // Send a ping to confirm a successful connection
