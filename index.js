@@ -31,6 +31,10 @@ async function run() {
     const bookingPolicyCollection = database.collection(
       "bookingPolicyCollection"
     );
+    // created reviewCollection
+    const reviewCollections = database.collection("reviews")
+
+
 
     //insert new policy
     app.post("/policies", async (req, res) => {
@@ -105,6 +109,21 @@ async function run() {
         res.status(500).send({ message: "Something went wrong" });
       }
     });
+
+
+    // review part
+    app.post('/reviews', async(req,res)=>{
+        const review = req.body;
+        const reviewCollection = await reviewCollections.insertOne(review);
+        res.send(reviewCollection)
+    })
+
+    // created the get api for review section
+    app.get('/reviews', async(req, res)=>{
+      const result = await reviewCollections.find().toArray();
+      res.send(result)
+    })
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
