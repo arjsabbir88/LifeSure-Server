@@ -34,6 +34,9 @@ async function run() {
     // created reviewCollection
     const reviewCollections = database.collection("reviews")
 
+    // created the bolg collections
+    const blogsCollection = database.collection('blogs')
+
 
 
     //insert new policy
@@ -122,6 +125,13 @@ async function run() {
     app.get('/reviews', async(req, res)=>{
       const result = await reviewCollections.find().toArray();
       res.send(result)
+    })
+
+    // created the bolog section
+    app.post('/blogs', async(req,res)=>{
+      const blog = req.body;
+      const result = await blogsCollection.insertOne(blog)
+      res.send(result);
     })
 
 
