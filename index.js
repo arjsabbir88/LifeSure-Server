@@ -37,6 +37,9 @@ async function run() {
     // created the bolg collections
     const blogsCollection = database.collection('blogs')
 
+    // Subscription collection form the home page
+    const subscriptionCollection = database.collection('subscription');
+
 
 
     //insert new policy
@@ -135,7 +138,10 @@ async function run() {
     })
 
     // get the all blog collection for blog page
-    
+    app.get('/all-blogs',async(req,res)=>{
+      const allBlogs = await blogsCollection.find().toArray();
+      res.send(allBlogs);
+    })
 
     // get the blog collection
     app.get('/blogs',async(req,res)=>{
@@ -150,6 +156,27 @@ async function run() {
       const result = await blogsCollection.findOne(query);
       res.send(result);
     })
+
+    // create subscription collection data
+    app.post('/subscription',async(req,res)=>{
+      const subscription = req.body;
+      const result = await subscriptionCollection.insertOne(subscription);
+      res.send(result);
+    })
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
