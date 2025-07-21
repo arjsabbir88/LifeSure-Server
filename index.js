@@ -134,7 +134,23 @@ async function run() {
       res.send(result);
     })
 
+    // get the all blog collection for blog page
+    
 
+    // get the blog collection
+    app.get('/blogs',async(req,res)=>{
+      const result = await blogsCollection.find().limit(4).toArray();
+      res.send(result);
+    })
+
+    // blog detals api
+    app.get('/blogs/details/:id',async(req,res)=>{
+      const id =req.params.id;
+      const query = {_id: new ObjectId(id)};
+      const result = await blogsCollection.findOne(query);
+      res.send(result);
+    })
+    
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
