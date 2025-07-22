@@ -25,6 +25,9 @@ async function run() {
     // create a database and collection list
     const database = client.db("LifeSure");
 
+    // create a userInfo Database
+    const userInfoCollection = database.collection('User');
+
     // policiesCollection
     const policiesCollection = database.collection("policies");
     // created bookingPolicyCollection
@@ -39,6 +42,16 @@ async function run() {
 
     // Subscription collection form the home page
     const subscriptionCollection = database.collection('subscription');
+
+
+    // create user info api
+    app.post('/user-info',async(req,res)=>{
+      const user = req.body;
+      const result = await userInfoCollection.insertOne(user);
+      res.send(result);
+    })
+
+
 
 
 
