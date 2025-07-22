@@ -43,7 +43,6 @@ async function run() {
     // Subscription collection form the home page
     const subscriptionCollection = database.collection('subscription');
 
-
     // create user info api
    app.put('/users/:email', async (req, res) => {
   const email = req.params.email;
@@ -66,10 +65,6 @@ async function run() {
   const result = await userInfoCollection.updateOne(filter, update, options);
   res.send(result);
 });
-
-
-
-
 
 
     //insert new policy
@@ -197,6 +192,53 @@ async function run() {
 
 
 
+
+  // app.get('/my-policy', async(req,res)=>{
+  //   const {email} = req.query;
+
+  //   if(!email) return res.status(400).send({ error: "Email is required" });
+
+  //   const query = {userEmail: email}
+  //   const policy = await bookingPolicyCollection.find(query).toArray();
+  //   res.send(policy)
+  // })
+
+
+
+app.get('/my-policy', async (req, res) => {
+  const { email } = req.query;
+
+  if (!email) return res.status(400).send({ error: 'Email is required' });
+
+  try {
+    const result = await bookingPolicyCollection.aggregate([
+      {
+        $match: { userEmail: email },
+      },
+      {
+        $addFields: {
+          bookingPolicyObjId: { $toObjectId: "$bookingPolicyId" }
+        }
+      },
+      {
+        $lookup: {
+          from: 'policies',
+          localField: 'bookingPolicyObjId',
+          foreignField: '_id',
+          as: 'policyDetails',
+        },
+      },
+      {
+        $unwind: '$policyDetails'
+      }
+    ]).toArray();
+
+    res.send(result);
+  } catch (error) {
+    console.error('Error:', error);
+    res.status(500).send({ error: 'Internal server error' });
+  }
+});
 
 
 
