@@ -45,11 +45,28 @@ async function run() {
 
 
     // create user info api
-    app.post('/user-info',async(req,res)=>{
-      const user = req.body;
-      const result = await userInfoCollection.insertOne(user);
-      res.send(result);
-    })
+   app.put('/users/:email', async (req, res) => {
+  const email = req.params.email;
+  const userData = req.body;
+
+  const filter = { email };
+  const update = {
+    $setOnInsert: {
+      email,
+      role: userData.role || "Customer",
+      profilePic: userData.profilePic,
+      created_at: new Date().toISOString(),
+    },
+    $set: {
+      last_log_in: new Date().toISOString(),
+    },
+  };
+
+  const options = { upsert: true };
+  const result = await userInfoCollection.updateOne(filter, update, options);
+  res.send(result);
+});
+
 
 
 
