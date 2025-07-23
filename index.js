@@ -5,6 +5,8 @@ const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const port = process.env.PORT || 3000;
 
+const stripe = require('stripe')(process.env.PAYMENT_GATWAY_KEY);
+
 app.use(express.json());
 app.use(cors());
 
@@ -45,6 +47,7 @@ async function run() {
 
     // create claim collection
     const claimCollection = database.collection("claim");
+    const transactionHistoryCollection = database.collection('transactionHistory');
 
     // create user info api
     app.put("/users/:email", async (req, res) => {
@@ -251,12 +254,12 @@ async function run() {
             },
             {
               $addFields: {
-                bookingPolicyIdObj: { $toObjectId: "$bookingPolicyId" }, 
+                bookingPolicyIdObj: { $toObjectId: "$bookingPolicyId" },
               },
             },
             {
               $lookup: {
-                from: "policies", 
+                from: "policies",
                 localField: "bookingPolicyIdObj",
                 foreignField: "_id",
                 as: "policyDetails",
@@ -272,14 +275,16 @@ async function run() {
                 reason: 1,
                 status: 1,
                 estimatedPremiumMonthly: 1,
-                paymentStatus:1,
-                nextDueDate:1,
-                paymentStatus:1,
+                paymentStatus: 1,
+                nextDueDate: 1,
+                paymentStatus: 1,
+                bookingPolicyId:1,
                 policyDetails: {
                   policyTitle: 1,
                   basePremium: 1,
                   category: 1,
-                  _id: 1
+                  _id: 1,
+                  imageUrl: 1,
                 },
               },
             },
@@ -292,6 +297,81 @@ async function run() {
         res.status(500).send({ error: "Internal Server Error" });
       }
     });
+
+    // created the payment system
+
+    // ---create the payment intent
+
+    app.post("/create-payment-intent", async (req, res) => {
+      const amountInCent = req.body.amount;
+      console.log(amountInCent)
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amountInCent,
+        currency : 'USD',
+        payment_method_types: ["card"],
+      });
+      res.send({ clientSecret: paymentIntent.client_secret });
+    });
+
+
+  // now create the payment history and make a new collection
+  app.post("/payment-success", async (req, res) => {
+  const paymentData = req.body;
+  
+
+  const {orderId} =paymentData;
+  console.log(orderId)
+
+
+  try {
+    const booking = await bookingPolicyCollection.findOne({ bookingPolicyId: orderId });
+
+    if (!booking) {
+      return res.status(404).send({ error: "Booking not found" });
+    }
+
+    const nextPaymentDate = new Date();
+    nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+
+    // 1. Update Booking
+    await bookingPolicyCollection.updateOne(
+      { bookingPolicyId: orderId },
+      {
+        $set: {
+          paymentStatus: "Paid",
+          nextPaymentDate: nextPaymentDate
+        }
+      }
+    );
+
+    const insertResult = await transactionHistoryCollection.insertOne(paymentData);
+
+    res.send({
+      message: "Payment processed successfully",
+      updatedBooking: {
+        paymentStatus: "Paid",
+        nextPaymentDate
+      },
+      transaction: insertResult.ops?.[0] || paymentData
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).send({ error: "Something went wrong processing the payment" });
+  }
+});
+
+
+
+
+
+
+
+
+
+
+
+
 
 
     // Send a ping to confirm a successful connection
