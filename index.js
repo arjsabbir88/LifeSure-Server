@@ -236,6 +236,17 @@ async function run() {
 
     // claim-request api created
 
+    app.post('/policy-claim-request',async(req,res)=>{
+      const claimRequestData = req.body;
+      const result = await claimCollection.insertOne(claimRequestData);
+      res.send(result);
+    })
+
+
+
+
+  
+
     app.get("/claim-request", async (req, res) => {
       const { email } = req.query;
       // console.log(email);
