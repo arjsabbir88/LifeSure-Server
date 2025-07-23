@@ -26,7 +26,7 @@ async function run() {
     const database = client.db("LifeSure");
 
     // create a userInfo Database
-    const userInfoCollection = database.collection('User');
+    const userInfoCollection = database.collection("User");
 
     // policiesCollection
     const policiesCollection = database.collection("policies");
@@ -35,37 +35,40 @@ async function run() {
       "bookingPolicyCollection"
     );
     // created reviewCollection
-    const reviewCollections = database.collection("reviews")
+    const reviewCollections = database.collection("reviews");
 
     // created the bolg collections
-    const blogsCollection = database.collection('blogs')
+    const blogsCollection = database.collection("blogs");
 
     // Subscription collection form the home page
-    const subscriptionCollection = database.collection('subscription');
+    const subscriptionCollection = database.collection("subscription");
 
     // create user info api
-   app.put('/users/:email', async (req, res) => {
-  const email = req.params.email;
-  const userData = req.body;
+    app.put("/users/:email", async (req, res) => {
+      const email = req.params.email;
+      const userData = req.body;
 
-  const filter = { email };
-  const update = {
-    $setOnInsert: {
-      email,
-      role: userData.role || "Customer",
-      profilePic: userData.profilePic,
-      created_at: new Date().toISOString(),
-    },
-    $set: {
-      last_log_in: new Date().toISOString(),
-    },
-  };
+      const filter = { email };
+      const update = {
+        $setOnInsert: {
+          email,
+          role: userData.role || "Customer",
+          profilePic: userData.profilePic,
+          created_at: new Date().toISOString(),
+        },
+        $set: {
+          last_log_in: new Date().toISOString(),
+        },
+      };
 
-  const options = { upsert: true };
-  const result = await userInfoCollection.updateOne(filter, update, options);
-  res.send(result);
-});
-
+      const options = { upsert: true };
+      const result = await userInfoCollection.updateOne(
+        filter,
+        update,
+        options
+      );
+      res.send(result);
+    });
 
     //insert new policy
     app.post("/policies", async (req, res) => {
@@ -141,115 +144,150 @@ async function run() {
       }
     });
 
-
     // review part
-    app.post('/reviews', async(req,res)=>{
-        const review = req.body;
-        const reviewCollection = await reviewCollections.insertOne(review);
-        res.send(reviewCollection)
-    })
+    app.post("/reviews", async (req, res) => {
+      const review = req.body;
+      const reviewCollection = await reviewCollections.insertOne(review);
+      res.send(reviewCollection);
+    });
 
     // created the get api for review section
-    app.get('/reviews', async(req, res)=>{
+    app.get("/reviews", async (req, res) => {
       const result = await reviewCollections.find().toArray();
-      res.send(result)
-    })
+      res.send(result);
+    });
 
     // created the bolog section
-    app.post('/blogs', async(req,res)=>{
+    app.post("/blogs", async (req, res) => {
       const blog = req.body;
-      const result = await blogsCollection.insertOne(blog)
+      const result = await blogsCollection.insertOne(blog);
       res.send(result);
-    })
+    });
 
     // get the all blog collection for blog page
-    app.get('/all-blogs',async(req,res)=>{
+    app.get("/all-blogs", async (req, res) => {
       const allBlogs = await blogsCollection.find().toArray();
       res.send(allBlogs);
-    })
+    });
 
     // get the blog collection
-    app.get('/blogs',async(req,res)=>{
+    app.get("/blogs", async (req, res) => {
       const result = await blogsCollection.find().limit(4).toArray();
       res.send(result);
-    })
+    });
 
     // blog detals api
-    app.get('/blogs/details/:id',async(req,res)=>{
-      const id =req.params.id;
-      const query = {_id: new ObjectId(id)};
+    app.get("/blogs/details/:id", async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
       const result = await blogsCollection.findOne(query);
       res.send(result);
-    })
+    });
 
     // create subscription collection data
-    app.post('/subscription',async(req,res)=>{
+    app.post("/subscription", async (req, res) => {
       const subscription = req.body;
       const result = await subscriptionCollection.insertOne(subscription);
       res.send(result);
-    })
+    });
 
+    app.get("/my-policy", async (req, res) => {
+      const { email } = req.query;
 
+      if (!email) return res.status(400).send({ error: "Email is required" });
 
+      try {
+        const result = await bookingPolicyCollection
+          .aggregate([
+            {
+              $match: { userEmail: email },
+            },
+            {
+              $addFields: {
+                bookingPolicyObjId: { $toObjectId: "$bookingPolicyId" },
+              },
+            },
+            {
+              $lookup: {
+                from: "policies",
+                localField: "bookingPolicyObjId",
+                foreignField: "_id",
+                as: "policyDetails",
+              },
+            },
+            {
+              $unwind: "$policyDetails",
+            },
+          ])
+          .toArray();
 
-
-  // app.get('/my-policy', async(req,res)=>{
-  //   const {email} = req.query;
-
-  //   if(!email) return res.status(400).send({ error: "Email is required" });
-
-  //   const query = {userEmail: email}
-  //   const policy = await bookingPolicyCollection.find(query).toArray();
-  //   res.send(policy)
-  // })
-
-
-
-app.get('/my-policy', async (req, res) => {
-  const { email } = req.query;
-
-  if (!email) return res.status(400).send({ error: 'Email is required' });
-
-  try {
-    const result = await bookingPolicyCollection.aggregate([
-      {
-        $match: { userEmail: email },
-      },
-      {
-        $addFields: {
-          bookingPolicyObjId: { $toObjectId: "$bookingPolicyId" }
-        }
-      },
-      {
-        $lookup: {
-          from: 'policies',
-          localField: 'bookingPolicyObjId',
-          foreignField: '_id',
-          as: 'policyDetails',
-        },
-      },
-      {
-        $unwind: '$policyDetails'
+        res.send(result);
+      } catch (error) {
+        console.error("Error:", error);
+        res.status(500).send({ error: "Internal server error" });
       }
-    ]).toArray();
-
-    res.send(result);
-  } catch (error) {
-    console.error('Error:', error);
-    res.status(500).send({ error: 'Internal server error' });
-  }
-});
+    });
 
 
 
 
+    // claim-request api created
 
+    app.get("/claim-request", async (req, res) => {
+      const { email } = req.query;
+      console.log(email)
+      if (!email) {
+        return res.status(400).send({ error: "Email is required" });
+      }
 
+      try {
+        const results = await bookingPolicyCollection
+          .aggregate([
+            {
+              $match: {
+                userEmail: email,
+                status: { $in: ["Active", "active"]}, 
+              },
+            },
+            {
+              $addFields: {
+                bookingPolicyIdObj: { $toObjectId: "$bookingPolicyId" }, // String → ObjectId
+              },
+            },
+            {
+              $lookup: {
+                from: "policies", // পলিসি কালেকশনের নাম
+                localField: "bookingPolicyIdObj",
+                foreignField: "_id",
+                as: "policyDetails",
+              },
+            },
+            {
+              $unwind: "$policyDetails", // একটার বেশি না থাকলে
+            },
+            {
+              $project: {
+                _id: 1,
+                userEmail: 1,
+                reason: 1,
+                status: 1,
+                policyDetails: {
+                  policyTitle: 1,
+                  basePremium: 1,
+                  category: 1,
+                },
+              },
+            },
+          ])
+          .toArray();
+          console.log(results)
+        res.send(results);
+      } catch (error) {
+        console.error("Error in claim request API:", error);
+        res.status(500).send({ error: "Internal Server Error" });
+      }
+    });
 
-
-
-
-    
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log(
