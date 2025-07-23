@@ -43,6 +43,9 @@ async function run() {
     // Subscription collection form the home page
     const subscriptionCollection = database.collection("subscription");
 
+    // create claim collection
+    const claimCollection = database.collection("claim");
+
     // create user info api
     app.put("/users/:email", async (req, res) => {
       const email = req.params.email;
@@ -228,14 +231,11 @@ async function run() {
       }
     });
 
-
-
-
     // claim-request api created
 
     app.get("/claim-request", async (req, res) => {
       const { email } = req.query;
-      console.log(email)
+      // console.log(email);
       if (!email) {
         return res.status(400).send({ error: "Email is required" });
       }
@@ -246,24 +246,24 @@ async function run() {
             {
               $match: {
                 userEmail: email,
-                status: { $in: ["Active", "active"]}, 
+                status: { $in: ["Active", "active"] },
               },
             },
             {
               $addFields: {
-                bookingPolicyIdObj: { $toObjectId: "$bookingPolicyId" }, // String → ObjectId
+                bookingPolicyIdObj: { $toObjectId: "$bookingPolicyId" }, 
               },
             },
             {
               $lookup: {
-                from: "policies", // পলিসি কালেকশনের নাম
+                from: "policies", 
                 localField: "bookingPolicyIdObj",
                 foreignField: "_id",
                 as: "policyDetails",
               },
             },
             {
-              $unwind: "$policyDetails", // একটার বেশি না থাকলে
+              $unwind: "$policyDetails",
             },
             {
               $project: {
@@ -271,22 +271,28 @@ async function run() {
                 userEmail: 1,
                 reason: 1,
                 status: 1,
+                estimatedPremiumMonthly: 1,
+                paymentStatus:1,
+                nextDueDate:1,
+                paymentStatus:1,
                 policyDetails: {
                   policyTitle: 1,
                   basePremium: 1,
                   category: 1,
+                  _id: 1
                 },
               },
             },
           ])
           .toArray();
-          console.log(results)
+        // console.log(results);
         res.send(results);
       } catch (error) {
         console.error("Error in claim request API:", error);
         res.status(500).send({ error: "Internal Server Error" });
       }
     });
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
