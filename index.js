@@ -60,7 +60,7 @@ async function run() {
     app.put("/users/:email", async (req, res) => {
       const email = req.params.email;
       const userData = req.body;
-      console.log(userData)
+      console.log(userData);
 
       const filter = { email };
       const update = {
@@ -69,7 +69,7 @@ async function run() {
           role: userData.role || "Customer",
           profilePic: userData.profilePic,
           created_at: new Date().toISOString(),
-          name: userData.name
+          name: userData.name,
         },
         $set: {
           last_log_in: new Date().toISOString(),
@@ -89,6 +89,37 @@ async function run() {
     app.get("/users-info", async (req, res) => {
       const userInfo = await userInfoCollection.find().toArray();
       res.send(userInfo);
+    });
+
+    // update user role
+    app.patch("/users/promote/:id", async (req, res) => {
+      const { id } = req.params;
+      const { role } = req.body;
+
+      if (!["admin", "agent", "customer"].includes(role)) {
+        return res.status(400).send({ error: "Invalid role value" });
+      }
+
+      try {
+        const result = await userInfoCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { role } }
+        );
+
+        if (result.modifiedCount > 0) {
+          res.send({ success: true, message: `User role updated to ${role}` });
+        } else {
+          res
+            .status(404)
+            .send({
+              success: false,
+              message: "User not found or role unchanged",
+            });
+        }
+      } catch (error) {
+        console.error("Error updating user role:", error);
+        res.status(500).send({ success: false, message: "Server error" });
+      }
     });
 
     //insert new policy
