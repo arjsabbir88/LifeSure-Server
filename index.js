@@ -109,15 +109,39 @@ async function run() {
         if (result.modifiedCount > 0) {
           res.send({ success: true, message: `User role updated to ${role}` });
         } else {
-          res
-            .status(404)
-            .send({
-              success: false,
-              message: "User not found or role unchanged",
-            });
+          res.status(404).send({
+            success: false,
+            message: "User not found or role unchanged",
+          });
         }
       } catch (error) {
         console.error("Error updating user role:", error);
+        res.status(500).send({ success: false, message: "Server error" });
+      }
+    });
+
+    // delete the user info from the db
+    app.delete("/users/:id", async (req, res) => {
+      const { id } = req.params;
+
+      if (!ObjectId.isValid(id)) {
+        return res
+          .status(400)
+          .send({ success: false, message: "Invalid user ID" });
+      }
+
+      try {
+        const result = await userInfoCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+
+        if (result.deletedCount > 0) {
+          res.send({ success: true, message: "User deleted successfully" });
+        } else {
+          res.status(404).send({ success: false, message: "User not found" });
+        }
+      } catch (error) {
+        console.error("Error deleting user:", error);
         res.status(500).send({ success: false, message: "Server error" });
       }
     });
