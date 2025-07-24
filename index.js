@@ -50,10 +50,17 @@ async function run() {
     const transactionHistoryCollection =
       database.collection("transactionHistory");
 
+    app.post("/user-info-created", async (req, res) => {
+      const userInfo = req.body;
+      const result = await userInfoCollection.insertOne(userInfo);
+      res.send(result);
+    });
+
     // create user info api
     app.put("/users/:email", async (req, res) => {
       const email = req.params.email;
       const userData = req.body;
+      console.log(userData)
 
       const filter = { email };
       const update = {
@@ -62,6 +69,7 @@ async function run() {
           role: userData.role || "Customer",
           profilePic: userData.profilePic,
           created_at: new Date().toISOString(),
+          name: userData.name
         },
         $set: {
           last_log_in: new Date().toISOString(),
@@ -75,6 +83,12 @@ async function run() {
         options
       );
       res.send(result);
+    });
+
+    // created for the manege user page
+    app.get("/users-info", async (req, res) => {
+      const userInfo = await userInfoCollection.find().toArray();
+      res.send(userInfo);
     });
 
     //insert new policy
@@ -113,7 +127,7 @@ async function run() {
       const email = req.query.email;
       const result = await bookingPolicyCollection.findOne({
         bookingPolicyId: bookingId,
-        userEmail: email
+        userEmail: email,
       });
 
       // console.log(result);
