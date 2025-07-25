@@ -146,6 +146,37 @@ async function run() {
       }
     });
 
+    // lets get the booking who bookected policy and which policy
+    app.get("/booking-with-policy", async (req, res) => {
+      try {
+        const result = await bookingPolicyCollection
+          .aggregate([
+            {
+              $addFields: {
+                bookingPolicyObjectId: { $toObjectId: "$bookingPolicyId" },
+              },
+            },
+            {
+              $lookup: {
+                from: "policies", // your target collection
+                localField: "bookingPolicyObjectId",
+                foreignField: "_id",
+                as: "policyData",
+              },
+            },
+            {
+              $unwind: "$policyData", // optional: flattens the joined array
+            },
+          ])
+          .toArray();
+
+        res.send(result);
+      } catch (error) {
+        console.error("Aggregation error:", error);
+        res.status(500).send({ error: "Internal Server Error" });
+      }
+    });
+
     //insert new policy
     app.post("/policies", async (req, res) => {
       const policy = req.body;
@@ -451,8 +482,15 @@ async function run() {
           return res.status(404).send({ error: "Booking not found" });
         }
 
-        const nextPaymentDate = new Date();
+        const createdAt = new Date();
+        const nextPaymentDate = new Date(createdAt);
         nextPaymentDate.setMonth(nextPaymentDate.getMonth() + 1);
+
+        const enrichedPaymentData = {
+          ...paymentData,
+          createdAt,
+          nextPaymentDate,
+        };
 
         // 1. Update Booking
         await bookingPolicyCollection.updateOne(
@@ -466,7 +504,7 @@ async function run() {
         );
 
         const insertResult = await transactionHistoryCollection.insertOne(
-          paymentData
+          enrichedPaymentData
         );
 
         res.send({
@@ -483,6 +521,12 @@ async function run() {
           .status(500)
           .send({ error: "Something went wrong processing the payment" });
       }
+    });
+
+    // manage transaction api
+    app.get("/transactions", async (req, res) => {
+      const result = await transactionHistoryCollection.find().toArray();
+      res.send(result);
     });
 
     // Send a ping to confirm a successful connection
