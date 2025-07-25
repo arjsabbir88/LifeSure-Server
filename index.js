@@ -167,6 +167,39 @@ async function run() {
       res.send(policy);
     });
 
+    // create the update policy api
+    app.patch("/policies/:id", async (req, res) => {
+      const { id } = req.params;
+      const updatedData = req.body;
+
+      try {
+        const result = await policiesCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: updatedData }
+        );
+
+        res.send(result);
+      } catch (error) {
+        res.status(500).send({ message: "Update failed" });
+      }
+    });
+
+    // delete teh policy
+    app.delete("/policies/:id", async (req, res) => {
+      const { id } = req.params;
+
+      try {
+        const result = await policiesCollection.deleteOne({
+          _id: new ObjectId(id),
+        });
+
+        res.send(result); // contains deletedCount
+      } catch (error) {
+        console.error("Delete error:", error);
+        res.status(500).send({ message: "Failed to delete policy" });
+      }
+    });
+
     // created api for the booking policy collection
     app.post("/booking-policy", async (req, res) => {
       const bookingPolicy = req.body;
