@@ -422,6 +422,18 @@ async function run() {
       res.send(result);
     });
 
+    // update agent status
+    app.patch("/agents/:id", async (req, res) => {
+      const { id } = req.params;
+      const { status } = req.body;
+
+      const result = await agentApplicationsCollection.updateOne(
+        { _id: new ObjectId(id) },
+        { $set: { status: status } }
+      );
+      res.send(result);
+    });
+
     // review part
     app.post("/reviews", async (req, res) => {
       const review = req.body;
