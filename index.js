@@ -44,6 +44,7 @@ async function run() {
 
     // Subscription collection form the home page
     const subscriptionCollection = database.collection("subscription");
+    const agentApplicationsCollection = database.collection("agent");
 
     // create claim collection
     const claimCollection = database.collection("claim");
@@ -177,6 +178,53 @@ async function run() {
       }
     });
 
+    // booking with policy for a id api
+
+    app.get("/booking-with-policy-details", async (req, res) => {
+      const { email, bookingPolicyId } = req.query;
+
+      if (!email || !bookingPolicyId) {
+        return res
+          .status(400)
+          .send({ error: "Missing email or bookingPolicyId" });
+      }
+
+      try {
+        const result = await bookingPolicyCollection
+          .aggregate([
+            {
+              $match: { email: email, bookingPolicyId: bookingPolicyId },
+            },
+            {
+              $addFields: {
+                bookingPolicyObjectId: { $toObjectId: "$bookingPolicyId" },
+              },
+            },
+            {
+              $lookup: {
+                from: "policies",
+                localField: "bookingPolicyObjectId",
+                foreignField: "_id",
+                as: "policyDetails",
+              },
+            },
+            {
+              $unwind: "$policyDetails",
+            },
+          ])
+          .toArray();
+
+        if (!result.length) {
+          return res.status(404).send({ error: "No matching booking found" });
+        }
+
+        res.send(result[0]); // only one unique booking
+      } catch (error) {
+        console.error("Aggregation error:", error);
+        res.status(500).send({ error: "Internal Server Error" });
+      }
+    });
+
     //insert new policy
     app.post("/policies", async (req, res) => {
       const policy = req.body;
@@ -295,6 +343,21 @@ async function run() {
         console.error(err);
         res.status(500).send({ message: "Something went wrong" });
       }
+    });
+
+    app.post("/agent-application", async (req, res) => {
+      try {
+        const result = await agentApplicationsCollection.insertOne(req.body);
+        res.send(result);
+      } catch (err) {
+        console.error(err);
+        res.status(500).send({ message: "Failed to save application." });
+      }
+    });
+
+    app.get("/agents", async (req, res) => {
+      const result = await agentApplicationsCollection.find().toArray();
+      res.send(result);
     });
 
     // review part
