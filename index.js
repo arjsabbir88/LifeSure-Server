@@ -61,7 +61,6 @@ async function run() {
     app.put("/users/:email", async (req, res) => {
       const email = req.params.email;
       const userData = req.body;
-      console.log(userData);
 
       const filter = { email };
       const update = {
@@ -454,6 +453,72 @@ async function run() {
       res.send(result);
     });
 
+    // assignedCustomer
+    app.get("/all-assigned-customers", async (req, res) => {
+      try {
+        const result = await userInfoCollection
+          .aggregate([
+            // 1. Lookup user info based on userEmail
+            {
+              $lookup: {
+                from: "user",
+                localField: "email",
+                foreignField: "email",
+                as: "userInfo",
+              },
+            },
+            {
+              $unwind: "$userInfo",
+            },
+
+            // 2. Lookup policy info based on bookingPolicyId
+            {
+              $addFields: {
+                bookingPolicyIdObject: {
+                  $cond: {
+                    if: { $eq: [{ $type: "$bookingPolicyId" }, "string"] },
+                    then: { $toObjectId: "$bookingPolicyId" },
+                    else: "$bookingPolicyId",
+                  },
+                },
+              },
+            },
+            {
+              $lookup: {
+                from: "policies",
+                localField: "bookingPolicyIdObject",
+                foreignField: "_id",
+                as: "policyInfo",
+              },
+            },
+            {
+              $unwind: "$policyInfo",
+            },
+
+            // 3. Final projection
+            {
+              $project: {
+                _id: 1,
+                applicationStatus: 1,
+                assignedAgent: 1,
+                userEmail: 1,
+                customerName: "$userInfo.name",
+                customerEmail: "$userInfo.email",
+                policyTitle: "$policyInfo.policyTitle",
+                policyId: "$policyInfo._id",
+                agentEmail: "$assignedAgent",
+              },
+            },
+          ])
+          .toArray();
+
+        res.send(result);
+      } catch (error) {
+        console.error("Aggregation error:", error);
+        res.status(500).send({ message: "Server error" });
+      }
+    });
+
     // get the all blog collection for blog page
     app.get("/all-blogs", async (req, res) => {
       const allBlogs = await blogsCollection.find().toArray();
@@ -472,6 +537,29 @@ async function run() {
       const query = { _id: new ObjectId(id) };
       const result = await blogsCollection.findOne(query);
       res.send(result);
+    });
+
+    // update blogs
+    app.put("/blogs/:id", async (req, res) => {
+      try {
+        const id = req.params.id;
+        if (!ObjectId.isValid(id)) {
+          return res.status(400).send({ error: "Invalid ID format" });
+        }
+
+        const update = { ...req.body };
+        delete update._id;
+
+        const result = await blogsCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: update }
+        );
+
+        res.send(result);
+      } catch (error) {
+        console.error("Update Blog Error:", error);
+        res.status(500).send({ error: "Internal Server Error" });
+      }
     });
 
     // create subscription collection data
