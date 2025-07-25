@@ -225,6 +225,43 @@ async function run() {
       }
     });
 
+    // update status on the bookingPolicyCollection
+    app.patch("/update-status/:id", async (req, res) => {
+      const { id } = req.params;
+      const { status, adminFeedback } = req.body;
+
+      try {
+        // Step 1: Prepare update object
+        const updateDoc = {
+          $set: {
+            status: status.toLowerCase(),
+          },
+        };
+
+        // Step 2: If there's feedback, include it
+        if (adminFeedback) {
+          updateDoc.$set.adminFeedback = adminFeedback;
+        }
+
+        // Step 3: Perform the update
+        const result = await bookingPolicyCollection.updateOne(
+          { _id: new ObjectId(id) },
+          updateDoc
+        );
+
+        if (result.modifiedCount === 0) {
+          return res
+            .status(404)
+            .send({ error: "Application not found or already updated" });
+        }
+
+        res.send({ message: "Status updated successfully", result });
+      } catch (error) {
+        console.error("Update error:", error);
+        res.status(500).send({ error: "Internal Server Error" });
+      }
+    });
+
     //insert new policy
     app.post("/policies", async (req, res) => {
       const policy = req.body;
