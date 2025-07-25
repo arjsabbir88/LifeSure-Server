@@ -262,6 +262,31 @@ async function run() {
       }
     });
 
+    // assigned the agent for the policy
+
+    app.patch("/assign-agent/:id", async (req, res) => {
+      const { id } = req.params;
+      const { assignedAgent } = req.body;
+
+      try {
+        const result = await bookingPolicyCollection.updateOne(
+          { _id: new ObjectId(id) },
+          { $set: { assignedAgent } }
+        );
+
+        if (result.modifiedCount === 0) {
+          return res
+            .status(404)
+            .send({ error: "Application not found or already assigned" });
+        }
+
+        res.send({ message: "Agent assigned successfully", result });
+      } catch (error) {
+        console.error("Assign agent error:", error);
+        res.status(500).send({ error: "Internal Server Error" });
+      }
+    });
+
     //insert new policy
     app.post("/policies", async (req, res) => {
       const policy = req.body;
