@@ -91,6 +91,14 @@ async function run() {
       res.send(userInfo);
     });
 
+    // get the user email by email
+    app.get('/user-info/:email', async(req,res)=>{
+      const {email} = req.params;
+      const result = await userInfoCollection.findOne({email: email});
+      console.log(result);
+      res.send(result);
+    })
+
     // update user role
     app.patch("/users/promote/:id", async (req, res) => {
       const { id } = req.params;
@@ -453,71 +461,6 @@ async function run() {
       res.send(result);
     });
 
-    // assignedCustomer
-    app.get("/all-assigned-customers", async (req, res) => {
-      try {
-        const result = await userInfoCollection
-          .aggregate([
-            // 1. Lookup user info based on userEmail
-            {
-              $lookup: {
-                from: "user",
-                localField: "email",
-                foreignField: "email",
-                as: "userInfo",
-              },
-            },
-            {
-              $unwind: "$userInfo",
-            },
-
-            // 2. Lookup policy info based on bookingPolicyId
-            {
-              $addFields: {
-                bookingPolicyIdObject: {
-                  $cond: {
-                    if: { $eq: [{ $type: "$bookingPolicyId" }, "string"] },
-                    then: { $toObjectId: "$bookingPolicyId" },
-                    else: "$bookingPolicyId",
-                  },
-                },
-              },
-            },
-            {
-              $lookup: {
-                from: "policies",
-                localField: "bookingPolicyIdObject",
-                foreignField: "_id",
-                as: "policyInfo",
-              },
-            },
-            {
-              $unwind: "$policyInfo",
-            },
-
-            // 3. Final projection
-            {
-              $project: {
-                _id: 1,
-                applicationStatus: 1,
-                assignedAgent: 1,
-                userEmail: 1,
-                customerName: "$userInfo.name",
-                customerEmail: "$userInfo.email",
-                policyTitle: "$policyInfo.policyTitle",
-                policyId: "$policyInfo._id",
-                agentEmail: "$assignedAgent",
-              },
-            },
-          ])
-          .toArray();
-
-        res.send(result);
-      } catch (error) {
-        console.error("Aggregation error:", error);
-        res.status(500).send({ message: "Server error" });
-      }
-    });
 
     // get the all blog collection for blog page
     app.get("/all-blogs", async (req, res) => {
