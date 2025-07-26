@@ -4,11 +4,18 @@ const app = express();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 require("dotenv").config();
 const port = process.env.PORT || 3000;
+const admin = require("firebase-admin");
 
 const stripe = require("stripe")(process.env.PAYMENT_GATWAY_KEY);
 
 app.use(express.json());
 app.use(cors());
+
+var serviceAccount = require("./firebase-admin.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(process.env.DB_URI, {
@@ -51,6 +58,28 @@ async function run() {
     const transactionHistoryCollection =
       database.collection("transactionHistory");
 
+    // verifyFB token
+
+    const verifyFBToken = async (req, res, next) => {
+      const authHeader = req.headers.authorization;
+      if (!authHeader) {
+        return res.status(401).send({ message: "unauthorized access" });
+      }
+      const token = authHeader.split(" ")[1];
+      if (!token) {
+        return res.status(401).send({ message: "unauthorized access" });
+      }
+
+      // verify the token
+      try {
+        const decoded = await admin.auth().verifyIdToken(token);
+        req.decoded = decoded;
+        next();
+      } catch (error) {
+        return res.status(403).send({ message: "forbidden access" });
+      }
+    };
+
     app.post("/user-info-created", async (req, res) => {
       const userInfo = req.body;
       const result = await userInfoCollection.insertOne(userInfo);
@@ -92,12 +121,12 @@ async function run() {
     });
 
     // get the user email by email
-    app.get('/user-info/:email', async(req,res)=>{
-      const {email} = req.params;
-      const result = await userInfoCollection.findOne({email: email});
+    app.get("/user-info/:email", async (req, res) => {
+      const { email } = req.params;
+      const result = await userInfoCollection.findOne({ email: email });
       console.log(result);
       res.send(result);
-    })
+    });
 
     // update user role
     app.patch("/users/promote/:id", async (req, res) => {
@@ -308,7 +337,7 @@ async function run() {
     });
 
     // get a single policy by id
-    app.get("/policies/:id", async (req, res) => {
+    app.get("/policies/:id",verifyFBToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const policy = await policiesCollection.findOne(query);
@@ -316,7 +345,7 @@ async function run() {
     });
 
     // create the update policy api
-    app.patch("/policies/:id", async (req, res) => {
+    app.patch("/policies/:id", verifyFBToken, async (req, res) => {
       const { id } = req.params;
       const updatedData = req.body;
 
@@ -333,7 +362,7 @@ async function run() {
     });
 
     // delete teh policy
-    app.delete("/policies/:id", async (req, res) => {
+    app.delete("/policies/:id", verifyFBToken, async (req, res) => {
       const { id } = req.params;
 
       try {
@@ -349,7 +378,7 @@ async function run() {
     });
 
     // created api for the booking policy collection
-    app.post("/booking-policy", async (req, res) => {
+    app.post("/booking-policy",verifyFBToken, async (req, res) => {
       const bookingPolicy = req.body;
       const bookedPolicy = await bookingPolicyCollection.insertOne(
         bookingPolicy
@@ -358,7 +387,7 @@ async function run() {
     });
 
     // checked policy is booked or not
-    app.get("/check-policy-available", async (req, res) => {
+    app.get("/check-policy-available",verifyFBToken, async (req, res) => {
       const bookingId = req.query.bookingId;
       const email = req.query.email;
       const result = await bookingPolicyCollection.findOne({
@@ -414,7 +443,7 @@ async function run() {
       }
     });
 
-    app.post("/agent-application", async (req, res) => {
+    app.post("/agent-application",verifyFBToken, async (req, res) => {
       try {
         const result = await agentApplicationsCollection.insertOne(req.body);
         res.send(result);
@@ -424,13 +453,13 @@ async function run() {
       }
     });
 
-    app.get("/agents", async (req, res) => {
+    app.get("/agents",verifyFBToken, async (req, res) => {
       const result = await agentApplicationsCollection.find().toArray();
       res.send(result);
     });
 
     // update agent status
-    app.patch("/agents/:id", async (req, res) => {
+    app.patch("/agents/:id",verifyFBToken, async (req, res) => {
       const { id } = req.params;
       const { status } = req.body;
 
@@ -442,7 +471,7 @@ async function run() {
     });
 
     // review part
-    app.post("/reviews", async (req, res) => {
+    app.post("/reviews",verifyFBToken, async (req, res) => {
       const review = req.body;
       const reviewCollection = await reviewCollections.insertOne(review);
       res.send(reviewCollection);
@@ -455,12 +484,11 @@ async function run() {
     });
 
     // created the bolog section
-    app.post("/blogs", async (req, res) => {
+    app.post("/blogs",verifyFBToken, async (req, res) => {
       const blog = req.body;
       const result = await blogsCollection.insertOne(blog);
       res.send(result);
     });
-
 
     // get the all blog collection for blog page
     app.get("/all-blogs", async (req, res) => {
@@ -475,7 +503,7 @@ async function run() {
     });
 
     // blog detals api
-    app.get("/blogs/details/:id", async (req, res) => {
+    app.get("/blogs/details/:id",verifyFBToken, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await blogsCollection.findOne(query);
@@ -483,7 +511,7 @@ async function run() {
     });
 
     // update blogs
-    app.put("/blogs/:id", async (req, res) => {
+    app.put("/blogs/:id",verifyFBToken, async (req, res) => {
       try {
         const id = req.params.id;
         if (!ObjectId.isValid(id)) {
@@ -512,7 +540,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/my-policy", async (req, res) => {
+    app.get("/my-policy",verifyFBToken, async (req, res) => {
       const { email } = req.query;
 
       if (!email) return res.status(400).send({ error: "Email is required" });
@@ -551,13 +579,13 @@ async function run() {
 
     // claim-request api created
 
-    app.post("/policy-claim-request", async (req, res) => {
+    app.post("/policy-claim-request",verifyFBToken, async (req, res) => {
       const claimRequestData = req.body;
       const result = await claimCollection.insertOne(claimRequestData);
       res.send(result);
     });
 
-    app.get("/claim-request", async (req, res) => {
+    app.get("/claim-request",verifyFBToken, async (req, res) => {
       const { email } = req.query;
       // console.log(email);
       if (!email) {
@@ -623,7 +651,7 @@ async function run() {
 
     // ---create the payment intent
 
-    app.post("/create-payment-intent", async (req, res) => {
+    app.post("/create-payment-intent",verifyFBToken, async (req, res) => {
       const amountInCent = req.body.amount;
       // console.log(amountInCent)
       const paymentIntent = await stripe.paymentIntents.create({
@@ -635,7 +663,7 @@ async function run() {
     });
 
     // now create the payment history and make a new collection
-    app.post("/payment-success", async (req, res) => {
+    app.post("/payment-success",verifyFBToken, async (req, res) => {
       const paymentData = req.body;
 
       const { orderId } = paymentData;
@@ -692,7 +720,7 @@ async function run() {
     });
 
     // manage transaction api
-    app.get("/transactions", async (req, res) => {
+    app.get("/transactions",verifyFBToken, async (req, res) => {
       const result = await transactionHistoryCollection.find().toArray();
       res.send(result);
     });
