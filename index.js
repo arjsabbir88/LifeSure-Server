@@ -324,7 +324,7 @@ async function run() {
     });
 
     //insert new policy
-    app.post("/policies", async (req, res) => {
+    app.post("/policies",verifyFBToken, async (req, res) => {
       const policy = req.body;
       const result = await policiesCollection.insertOne(policy);
       res.send(result);
@@ -337,7 +337,7 @@ async function run() {
     });
 
     // get a single policy by id
-    app.get("/policies/:id",verifyFBToken, async (req, res) => {
+    app.get("/policies/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const policy = await policiesCollection.findOne(query);
@@ -387,7 +387,7 @@ async function run() {
     });
 
     // checked policy is booked or not
-    app.get("/check-policy-available",verifyFBToken, async (req, res) => {
+    app.get("/check-policy-available", async (req, res) => {
       const bookingId = req.query.bookingId;
       const email = req.query.email;
       const result = await bookingPolicyCollection.findOne({
@@ -453,7 +453,7 @@ async function run() {
       }
     });
 
-    app.get("/agents",verifyFBToken, async (req, res) => {
+    app.get("/agents", async (req, res) => {
       const result = await agentApplicationsCollection.find().toArray();
       res.send(result);
     });
@@ -471,7 +471,7 @@ async function run() {
     });
 
     // review part
-    app.post("/reviews",verifyFBToken, async (req, res) => {
+    app.post("/reviews", async (req, res) => {
       const review = req.body;
       const reviewCollection = await reviewCollections.insertOne(review);
       res.send(reviewCollection);
@@ -503,7 +503,7 @@ async function run() {
     });
 
     // blog detals api
-    app.get("/blogs/details/:id",verifyFBToken, async (req, res) => {
+    app.get("/blogs/details/:id", async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
       const result = await blogsCollection.findOne(query);
@@ -720,7 +720,7 @@ async function run() {
     });
 
     // manage transaction api
-    app.get("/transactions",verifyFBToken, async (req, res) => {
+    app.get("/transactions", async (req, res) => {
       const result = await transactionHistoryCollection.find().toArray();
       res.send(result);
     });
