@@ -58,6 +58,8 @@ async function run() {
     const transactionHistoryCollection =
       database.collection("transactionHistory");
 
+    const agentConsultationCollection = database.collection('/agentConsultation');
+
     // verifyFB token
 
     const verifyFBToken = async (req, res, next) => {
@@ -113,6 +115,12 @@ async function run() {
       );
       res.send(result);
     });
+
+    app.post('/agent-consultation',async(req,res)=>{
+      const formData = req.body;
+      const result = await agentConsultationCollection.insertOne(formData);
+      res.send(result);
+    })
 
     // created for the manege user page
     app.get("/users-info", async (req, res) => {
@@ -396,7 +404,7 @@ async function run() {
       });
 
       // console.log(result);
-      res.send(!!result);
+      res.send(result);
     });
 
     // count booking data on the booking collection with mongodb aggregation query method
@@ -497,7 +505,7 @@ async function run() {
 
     // get the all blog collection for blog page
     app.get("/all-blogs", async (req, res) => {
-      const allBlogs = await blogsCollection.find().toArray();
+      const allBlogs = await blogsCollection.find().sort({ _id: -1 }).toArray();
       res.send(allBlogs);
     });
 
