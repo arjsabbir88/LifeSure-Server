@@ -11,7 +11,8 @@ const stripe = require("stripe")(process.env.PAYMENT_GATWAY_KEY);
 app.use(express.json());
 app.use(cors());
 
-var serviceAccount = require("./firebase-admin.json");
+const decodedKey = Buffer.from(process.env.FIREBASE_SERVICE_KEY, 'base64').toString("utf8")
+var serviceAccount = JSON.parse(decodedKey)
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
