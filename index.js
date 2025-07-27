@@ -58,7 +58,8 @@ async function run() {
     const transactionHistoryCollection =
       database.collection("transactionHistory");
 
-    const agentConsultationCollection = database.collection('/agentConsultation');
+    const agentConsultationCollection =
+      database.collection("/agentConsultation");
 
     // verifyFB token
 
@@ -81,6 +82,34 @@ async function run() {
         return res.status(403).send({ message: "forbidden access" });
       }
     };
+
+    // search api
+    app.get("/search", async (req, res) => {
+  try {
+    const query = req.query.q;
+
+    if (!query) {
+      return res.status(400).json({ message: "Search query is required" });
+    }
+
+    // Case-insensitive search in multiple fields
+    const results = await policiesCollection
+      .find({
+        $or: [
+          { policyTitle: { $regex: query, $options: "i" } },
+          { category: { $regex: query, $options: "i" } },
+          { createdBY: { $regex: query, $options: "i" } },
+        ],
+      })
+      .toArray();
+
+    res.status(200).json(results);
+  } catch (error) {
+    console.error("Search failed:", error);
+    res.status(500).json({ message: "Server error during search" });
+  }
+});
+
 
     app.post("/user-info-created", async (req, res) => {
       const userInfo = req.body;
@@ -116,11 +145,11 @@ async function run() {
       res.send(result);
     });
 
-    app.post('/agent-consultation',async(req,res)=>{
+    app.post("/agent-consultation", async (req, res) => {
       const formData = req.body;
       const result = await agentConsultationCollection.insertOne(formData);
       res.send(result);
-    })
+    });
 
     // created for the manege user page
     app.get("/users-info", async (req, res) => {
@@ -511,7 +540,11 @@ async function run() {
 
     // get the blog collection
     app.get("/blogs", async (req, res) => {
-      const result = await blogsCollection.find().sort({ _id: -1 }).limit(4).toArray();
+      const result = await blogsCollection
+        .find()
+        .sort({ _id: -1 })
+        .limit(4)
+        .toArray();
       res.send(result);
     });
 
