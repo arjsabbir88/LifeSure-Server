@@ -124,7 +124,7 @@ async function run() {
     app.get("/user-info/:email", async (req, res) => {
       const { email } = req.params;
       const result = await userInfoCollection.findOne({ email: email });
-      console.log(result);
+      // console.log(result);
       res.send(result);
     });
 
@@ -324,7 +324,7 @@ async function run() {
     });
 
     //insert new policy
-    app.post("/policies",verifyFBToken, async (req, res) => {
+    app.post("/policies", verifyFBToken, async (req, res) => {
       const policy = req.body;
       const result = await policiesCollection.insertOne(policy);
       res.send(result);
@@ -378,7 +378,7 @@ async function run() {
     });
 
     // created api for the booking policy collection
-    app.post("/booking-policy",verifyFBToken, async (req, res) => {
+    app.post("/booking-policy", verifyFBToken, async (req, res) => {
       const bookingPolicy = req.body;
       const bookedPolicy = await bookingPolicyCollection.insertOne(
         bookingPolicy
@@ -405,6 +405,11 @@ async function run() {
       try {
         const topPolicies = await bookingPolicyCollection
           .aggregate([
+            {
+              $match: {
+                status: { $regex: "^active$", $options: "i" },
+              },
+            },
             {
               $group: {
                 _id: { $toObjectId: "$bookingPolicyId" },
@@ -443,7 +448,7 @@ async function run() {
       }
     });
 
-    app.post("/agent-application",verifyFBToken, async (req, res) => {
+    app.post("/agent-application", verifyFBToken, async (req, res) => {
       try {
         const result = await agentApplicationsCollection.insertOne(req.body);
         res.send(result);
@@ -459,7 +464,7 @@ async function run() {
     });
 
     // update agent status
-    app.patch("/agents/:id",verifyFBToken, async (req, res) => {
+    app.patch("/agents/:id", verifyFBToken, async (req, res) => {
       const { id } = req.params;
       const { status } = req.body;
 
@@ -484,7 +489,7 @@ async function run() {
     });
 
     // created the bolog section
-    app.post("/blogs",verifyFBToken, async (req, res) => {
+    app.post("/blogs", verifyFBToken, async (req, res) => {
       const blog = req.body;
       const result = await blogsCollection.insertOne(blog);
       res.send(result);
@@ -498,7 +503,7 @@ async function run() {
 
     // get the blog collection
     app.get("/blogs", async (req, res) => {
-      const result = await blogsCollection.find().limit(4).toArray();
+      const result = await blogsCollection.find().sort({ _id: -1 }).limit(4).toArray();
       res.send(result);
     });
 
@@ -511,7 +516,7 @@ async function run() {
     });
 
     // update blogs
-    app.put("/blogs/:id",verifyFBToken, async (req, res) => {
+    app.put("/blogs/:id", verifyFBToken, async (req, res) => {
       try {
         const id = req.params.id;
         if (!ObjectId.isValid(id)) {
@@ -540,7 +545,7 @@ async function run() {
       res.send(result);
     });
 
-    app.get("/my-policy",verifyFBToken, async (req, res) => {
+    app.get("/my-policy", verifyFBToken, async (req, res) => {
       const { email } = req.query;
 
       if (!email) return res.status(400).send({ error: "Email is required" });
@@ -579,13 +584,13 @@ async function run() {
 
     // claim-request api created
 
-    app.post("/policy-claim-request",verifyFBToken, async (req, res) => {
+    app.post("/policy-claim-request", verifyFBToken, async (req, res) => {
       const claimRequestData = req.body;
       const result = await claimCollection.insertOne(claimRequestData);
       res.send(result);
     });
 
-    app.get("/claim-request",verifyFBToken, async (req, res) => {
+    app.get("/claim-request", verifyFBToken, async (req, res) => {
       const { email } = req.query;
       // console.log(email);
       if (!email) {
@@ -651,7 +656,7 @@ async function run() {
 
     // ---create the payment intent
 
-    app.post("/create-payment-intent",verifyFBToken, async (req, res) => {
+    app.post("/create-payment-intent", verifyFBToken, async (req, res) => {
       const amountInCent = req.body.amount;
       // console.log(amountInCent)
       const paymentIntent = await stripe.paymentIntents.create({
@@ -663,7 +668,7 @@ async function run() {
     });
 
     // now create the payment history and make a new collection
-    app.post("/payment-success",verifyFBToken, async (req, res) => {
+    app.post("/payment-success", verifyFBToken, async (req, res) => {
       const paymentData = req.body;
 
       const { orderId } = paymentData;
