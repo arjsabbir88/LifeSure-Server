@@ -29,7 +29,7 @@ const client = new MongoClient(process.env.DB_URI, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     // create a database and collection list
     const database = client.db("LifeSure");
@@ -105,7 +105,6 @@ async function run() {
 
     res.status(200).json(results);
   } catch (error) {
-    console.error("Search failed:", error);
     res.status(500).json({ message: "Server error during search" });
   }
 });
@@ -189,7 +188,7 @@ async function run() {
           });
         }
       } catch (error) {
-        console.error("Error updating user role:", error);
+        
         res.status(500).send({ success: false, message: "Server error" });
       }
     });
@@ -215,7 +214,7 @@ async function run() {
           res.status(404).send({ success: false, message: "User not found" });
         }
       } catch (error) {
-        console.error("Error deleting user:", error);
+        
         res.status(500).send({ success: false, message: "Server error" });
       }
     });
@@ -246,7 +245,7 @@ async function run() {
 
         res.send(result);
       } catch (error) {
-        console.error("Aggregation error:", error);
+        
         res.status(500).send({ error: "Internal Server Error" });
       }
     });
@@ -293,7 +292,7 @@ async function run() {
 
         res.send(result[0]); // only one unique booking
       } catch (error) {
-        console.error("Aggregation error:", error);
+        
         res.status(500).send({ error: "Internal Server Error" });
       }
     });
@@ -330,7 +329,7 @@ async function run() {
 
         res.send({ message: "Status updated successfully", result });
       } catch (error) {
-        console.error("Update error:", error);
+       
         res.status(500).send({ error: "Internal Server Error" });
       }
     });
@@ -355,7 +354,7 @@ async function run() {
 
         res.send({ message: "Agent assigned successfully", result });
       } catch (error) {
-        console.error("Assign agent error:", error);
+        
         res.status(500).send({ error: "Internal Server Error" });
       }
     });
@@ -409,7 +408,7 @@ async function run() {
 
         res.send(result); // contains deletedCount
       } catch (error) {
-        console.error("Delete error:", error);
+        
         res.status(500).send({ message: "Failed to delete policy" });
       }
     });
@@ -432,7 +431,7 @@ async function run() {
         userEmail: email,
       });
 
-      // console.log(result);
+      
       res.send(result);
     });
 
@@ -480,7 +479,7 @@ async function run() {
 
         res.send(topPolicies);
       } catch (err) {
-        console.error(err);
+        
         res.status(500).send({ message: "Something went wrong" });
       }
     });
@@ -490,7 +489,7 @@ async function run() {
         const result = await agentApplicationsCollection.insertOne(req.body);
         res.send(result);
       } catch (err) {
-        console.error(err);
+        
         res.status(500).send({ message: "Failed to save application." });
       }
     });
@@ -574,7 +573,7 @@ async function run() {
 
         res.send(result);
       } catch (error) {
-        console.error("Update Blog Error:", error);
+        
         res.status(500).send({ error: "Internal Server Error" });
       }
     });
@@ -618,7 +617,7 @@ async function run() {
 
         res.send(result);
       } catch (error) {
-        console.error("Error:", error);
+        
         res.status(500).send({ error: "Internal server error" });
       }
     });
@@ -633,7 +632,7 @@ async function run() {
 
     app.get("/claim-request", verifyFBToken, async (req, res) => {
       const { email } = req.query;
-      // console.log(email);
+      
       if (!email) {
         return res.status(400).send({ error: "Email is required" });
       }
@@ -685,10 +684,10 @@ async function run() {
             },
           ])
           .toArray();
-        // console.log(results);
+        
         res.send(results);
       } catch (error) {
-        console.error("Error in claim request API:", error);
+       
         res.status(500).send({ error: "Internal Server Error" });
       }
     });
@@ -699,7 +698,7 @@ async function run() {
 
     app.post("/create-payment-intent", verifyFBToken, async (req, res) => {
       const amountInCent = req.body.amount;
-      // console.log(amountInCent)
+      
       const paymentIntent = await stripe.paymentIntents.create({
         amount: amountInCent,
         currency: "USD",
@@ -713,7 +712,7 @@ async function run() {
       const paymentData = req.body;
 
       const { orderId } = paymentData;
-      // console.log(orderId)
+      
 
       try {
         const booking = await bookingPolicyCollection.findOne({
@@ -758,7 +757,7 @@ async function run() {
           transaction: insertResult.ops?.[0] || paymentData,
         });
       } catch (err) {
-        console.error(err);
+        
         res
           .status(500)
           .send({ error: "Something went wrong processing the payment" });
@@ -772,10 +771,10 @@ async function run() {
     });
 
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log(
-      "Pinged your deployment. You successfully connected to MongoDB!"
-    );
+    // await client.db("admin").command({ ping: 1 });
+    // console.log(
+    //   "Pinged your deployment. You successfully connected to MongoDB!"
+    // );
   } finally {
     // Ensures that the client will close when you finish/error
     // await client.close();
